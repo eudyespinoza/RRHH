@@ -1,4 +1,6 @@
 from tkinter import *
+from controlador import *
+from modelo import *
 
 
 root = Tk()
