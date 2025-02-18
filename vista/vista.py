@@ -32,11 +32,7 @@ fecha_egreso.grid(row=8, column=0, sticky= W)
 sexo = Label(master, text="Sexo")
 sexo.grid(row=9, column=0, sticky= W)
 
-fecha_creacion = Label(master, text="Fecha de Creacion")
-fecha_creacion.grid(row=10, column=0, sticky= W)
 
-fecha_modificacion = Label(master, text="Fecha modificacion")
-fecha_modificacion.grid(row=11, column=0, sticky= W)
 
 
 
@@ -71,11 +67,7 @@ fecha_egreso.grid(row=8, column=1)
 sexo = Entry(master)
 sexo.grid(row=9, column=1)
 
-fecha_creacion = Entry(master)
-fecha_creacion.grid(row=10, column=1)
 
-fecha_modificacion = Entry(master)
-fecha_modificacion.grid(row=11, column=1)
 
 
 
