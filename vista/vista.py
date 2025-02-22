@@ -1,6 +1,11 @@
 from tkinter import *
+from controlador import *
 
 master =Tk()
+
+
+
+
 
 nombre = Label(master, text="Nombre")
 nombre.grid(row=0, column=0, sticky= W)
