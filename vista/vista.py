@@ -69,21 +69,6 @@ sexo.grid(row=9, column=1)
 
 
 
-
-
-
-
-
-
-
-
-"""def funcion():
-   print("Hola")
-
-
-boton_g = Button(master, text="Guardar", command=funcion)
-boton_g.grid(row=2, column=1)
-"""
 master.mainloop()
 
 
