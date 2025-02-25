@@ -1,5 +1,6 @@
 from tkinter import *
 
+
 master = Tk()
 master.geometry("1024x250")
 nombre = StringVar()
