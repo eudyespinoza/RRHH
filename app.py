@@ -2,64 +2,159 @@
 IMPORTAR LIBRERIAS
 """
 from tkinter import *
+import tkinter.ttk as ttk
+import sqlite3
 
+from click import DateTime
 
 """
 ______
 MODELO
 ______
 """
+
+def conectar_db():
+    conn = sqlite3.connect('empleados.db')
+    return conn
+
+def crear_tablas():
+    conn = conectar_db()
+    cursor = conn.cursor()
+    cursor.executescript("""
+    CREATE TABLE IF NOT EXISTS empleado (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    dni INTEGER NOT NULL,
+    cuil INTEGER NOT NULL,
+    nombre TEXT NOT NULL,
+    segundo_nombre TEXT NULL,
+    apellido TEXT NULL,
+    segundo_apellido TEXT NULL,
+    fecha_nacimiento DATE NULL,
+    edad INTEGER NOT NULL,
+    sexo INTEGER NOT NULL,
+    fecha_ingreso DATE NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS telefonos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    dni INTEGER NOT NULL,
+    telefono TEXT NOT NULL,
+    tipo TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS direcciones (    
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    dni INTEGER NOT NULL,
+    direccion TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS asistencia (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    dni INTEGER NOT NULL,
+    fecha TEXT NOT NULL,
+    hora_entrada TEXT NOT NULL,
+    hora_salida TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS cargo (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    dni INTEGER NOT NULL,
+    cargo TEXT NOT NULL,
+    salario REAL NOT NULL
+    );
+    """)
+    conn.commit()
+    conn.close()
+
+crear_tablas()
+
 empleados = {}
-next_id = 1
 
-def agregar_empleado_db(dni, cuil, nombre, segundo_nombre, apellido, segundo_apellido, fecha_nacimiento, edad, sexo,
-                        fecha_ingreso):
-    global next_id
-    if dni in empleados:
-        print("El empleado ya existe")
-        return False, "Ya existe un empleado con el DNI ingresado."
-    if not all([cuil, nombre, apellido, edad, sexo]):
-        print("Debe completar todos los datos")
-        return False, "Debe completar todos los datos obligatorios."
+def agregar_empleado_db(dni, cuil, nombre, segundo_nombre, apellido, segundo_apellido, fecha_nacimiento, edad, sexo, fecha_ingreso):
 
-    # Se crea el registro del empleado incluyendo el ID
-    empleado = {
-        "id": next_id,
-        "dni": dni,
-        "cuil": cuil,
-        "nombre": nombre,
-        "segundo_nombre": segundo_nombre or '',
-        "apellido": apellido,
-        "segundo_apellido": segundo_apellido or '',
-        "fecha_nacimiento": fecha_nacimiento,
-        "edad": edad,
-        "sexo": sexo,
-        "fecha_ingreso": fecha_ingreso,
-        "telefonos": [],
-        "direcciones": []
-    }
-    empleados[dni] = empleado
-    next_id += 1
-    print(listar_empleados_db())
+    data = (dni, cuil, nombre, segundo_nombre, apellido, segundo_apellido, fecha_nacimiento, edad, sexo, fecha_ingreso)
+
+    conn = conectar_db()
+    cursor = conn.cursor()
+    sql = """INSERT INTO empleado (dni, cuil, nombre, segundo_nombre, apellido, segundo_apellido,
+    fecha_nacimiento,edad, sexo, fecha_ingreso)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)  
+    """
+    cursor.execute(sql, data)
+    conn.commit()
+    conn.close()
+
     return True, "Empleado agregado con éxito."
 
-def agregar_telefono_db(dni, telefono):
-    if dni not in empleados:
-        return False, "Empleado no encontrado."
-    empleados[dni]["telefonos"].append(telefono)
+def agregar_telefono_db(dni, telefono, tipo):
+    data = (dni, telefono, tipo)
+    conn = conectar_db()
+    cursor = conn.cursor()
+    sql = """INSERT INTO telefonos (dni, telefono, tipo) 
+    VALUES (?, ?, ?)"""
+    cursor.execute(sql, data)
+    conn.commit()
+    conn.close()
+
     return True, "Teléfono agregado correctamente."
 
 def agregar_direccion_db(dni, direccion):
-    if dni not in empleados:
-        return False, "Empleado no encontrado."
-    empleados[dni]["direcciones"].append(direccion)
+    data = (dni, direccion)
+    conn = conectar_db()
+    cursor = conn.cursor()
+    sql = """INSERT INTO direcciones (dni, direccion)
+    VALUES (?, ?)"""
+    cursor.execute(sql, data)
+    conn.commit()
+    conn.close()
+
     return True, "Dirección agregada correctamente."
 
+def agregar_asistencia_db(dni, fecha, hora_entrada, hora_salida):
+
+    data = (dni, fecha, hora_entrada, hora_salida)
+    conn = conectar_db()
+    cursor = conn.cursor()
+    sql = """INSERT INTO asistencia (dni, fecha, hora_entrada, hora_salida)
+    VALUES (?, ?, ?, ?)"""
+    cursor.execute(sql, data)
+    conn.commit()
+    conn.close()
+
+    return True, "Asistencia agregada correctamente."
+
+def agregar_cargo_db(dni, cargo, salario):
+    data = (dni, cargo, salario)
+    conn = conectar_db()
+    cursor = conn.cursor()
+    sql = """INSERT INTO cargo (dni, cargo, salario)
+    VALUES (?, ?, ?)"""
+    cursor.execute(sql, data)
+    conn.commit()
+    conn.close()
+
+    return True, "Cargo agregada correctamente."
+
 def obtener_empleado_db(dni):
-    return empleados.get(dni, None)
+    conn = conectar_db()
+    cursor = conn.cursor()
+    sql = """SELECT * FROM empleado WHERE dni = ?"""
+    cursor.execute(sql, dni)
+    data = cursor.fetchall()
+    conn.close()
+
+    return data
 
 def listar_empleados_db():
-    return list(empleados.items())
+    conn = conectar_db()
+    cursor = conn.cursor()
+    sql = """SELECT * FROM empleado"""
+    cursor.execute(sql)
+    datos = cursor.fetchall()
+    conn.close()
+    print("Datos de la DB", datos)
+
+    return datos
 
 """
 ___________
@@ -77,31 +172,96 @@ def guardar_usuario():
     data_fecha_nacimiento = fecha_nacimiento.get()
     data_edad = edad.get()
     data_fecha_ingreso = fecha_ingreso.get()
-    data_fecha_egreso = fecha_egreso.get()
     data_sexo = sexo.get()
+
+    agregado = agregar_empleado_db(data_dni, data_cuit, data_nombre, data_segundo_nombre, data_apellido, data_segundo_apellido, data_fecha_nacimiento, data_edad, data_sexo,
+                        data_fecha_ingreso)
+
+    if not agregado:
+        return False
+
+    nombre.set("---")
+    segundo_nombre.set("---")
+    apellido.set("---")
+    segundo_apellido.set("---")
+    dni.set("---")
+    cuit.set("---")
+    fecha_nacimiento.set("---")
+    edad.set("---")
+    fecha_ingreso.set("---")
+    sexo.set("---")
+
+    return agregado
+
+def guardar_direccion():
+    data_dni = dni.get()
     data_calle = calle.get()
     data_altura = altura.get()
     data_localidad = localidad.get()
     data_provincia = provincia.get()
     data_codigo_postal = codigo_postal.get()
-    data_telefono = telefono.get()
-    data_tipo = tipo.get()
-    data_cargo = cargo.get()
-    data_salario = salario.get()
-    data_fecha = fecha.get()
-    data_hora_de_entrada = hora_de_entrada.get()
-    data_hora_de_salida = hora_de_salida.get()
-    print(data_dni, data_cuit, data_nombre, data_segundo_nombre, data_apellido, data_segundo_apellido, data_fecha_nacimiento, data_edad, data_sexo,
-                        data_fecha_ingreso)
-    agregado = agregar_empleado_db(data_dni, data_cuit, data_nombre, data_segundo_nombre, data_apellido, data_segundo_apellido, data_fecha_nacimiento, data_edad, data_sexo,
-                        data_fecha_ingreso)
-    datos = [data_nombre, data_segundo_nombre, data_apellido, data_segundo_apellido, data_dni, data_cuit, data_fecha_nacimiento, data_fecha_ingreso,
-                    data_fecha_egreso, data_sexo, data_calle, data_altura, data_localidad, data_provincia, data_codigo_postal, data_telefono, data_tipo, data_cargo,
-                    data_salario, data_fecha, data_hora_de_entrada, data_hora_de_salida]
+
+    direccion = f"{data_calle} {data_altura}, {data_localidad} {data_provincia}, CP {data_codigo_postal}"
+
+    agregado = agregar_direccion_db(data_dni, direccion)
 
     if not agregado:
         return False
+
+    calle.set("---")
+    altura.set("---")
+    localidad.set("---")
+    provincia.set("---")
+    codigo_postal.set("---")
+
     return agregado
+
+def guardar_telefono():
+    data_dni = dni.get()
+    data_telefono = telefono.get()
+    data_tipo = tipo.get()
+
+    agregado = agregar_telefono_db(data_dni, data_telefono, data_tipo)
+
+    if not agregado:
+        return False
+
+    telefono.set("---")
+    tipo.set("---")
+
+    return agregado
+
+def guardar_asistencia():
+    data_dni = dni.get()
+    data_fecha = fecha.get()
+    data_hora_de_entrada = hora_de_entrada.get()
+    data_hora_de_salida = hora_de_salida.get()
+
+    agregado = agregar_asistencia_db(data_dni, data_fecha, data_hora_de_entrada, data_hora_de_salida)
+
+    if not agregado:
+        return False
+
+    fecha.set("---")
+    hora_de_entrada.set("---")
+    hora_de_salida.set("---")
+
+    return agregado
+
+def guardar_cargo():
+    data_dni = dni.get()
+    data_cargo = cargo.get()
+    data_salario = salario.get()
+    data_fecha_egreso = fecha_egreso.get()
+
+    agregado = agregar_cargo_db(data_dni, data_cargo, data_salario, data_fecha_egreso)
+
+    cargo.set("---")
+    salario.set("---")
+    fecha_egreso.set("---")
+
+    return agregado
+
 
 """
 _____
@@ -110,7 +270,9 @@ _____
 """
 
 master = Tk()
-master.geometry("1024x250")
+master.geometry("1024x260")
+
+# Variables
 nombre = StringVar()
 segundo_nombre = StringVar()
 apellido = StringVar()
@@ -155,45 +317,43 @@ label_segundo_apellido.grid(row=3, column=0, sticky=W)
 entry_segundo_apellido = Entry(master, textvariable=segundo_apellido)
 entry_segundo_apellido.grid(row=3, column=1)
 
-def mostrar():
-    print(dni.get())
-
 label_dni = Label(master, text="Dni")
 label_dni.grid(row=4, column=0, sticky=W)
-dni = Entry(master, textvariable=dni)
-dni.grid(row=4, column=1)
-Boton_dni = Button(master, text="GUARDAR", command=guardar_usuario)
-Boton_dni.grid(row=10, column=8, sticky=E)
+entry_dni = Entry(master, textvariable=dni)
+entry_dni.grid(row=4, column=1)
 
 label_cuit = Label(master, text="Cuit")
 label_cuit.grid(row=5, column=0, sticky=W)
-cuit = Entry(master)
-cuit.grid(row=5, column=1)
+entry_cuit = Entry(master, textvariable=cuit)
+entry_cuit.grid(row=5, column=1)
 
 label_fecha_nacimiento = Label(master, text="Fecha de Nacimiento")
 label_fecha_nacimiento.grid(row=6, column=0, sticky=W)
-fecha_nacimiento = Entry(master, textvariable=fecha_nacimiento)
-fecha_nacimiento.grid(row=6, column=1)
+entry_fecha_nacimiento = Entry(master, textvariable=fecha_nacimiento)
+entry_fecha_nacimiento.grid(row=6, column=1)
 
 label_edad = Label(master, text="Edad")
 label_edad.grid(row=7, column=0, sticky=W)
-edad = Entry(master, textvariable=edad)
-edad.grid(row=7, column=1)
+entry_edad = Entry(master, textvariable=edad)
+entry_edad.grid(row=7, column=1)
 
 label_fecha_ingreso = Label(master, text="Fecha de Ingreso")
 label_fecha_ingreso.grid(row=8, column=0, sticky=W)
-fecha_ingreso = Entry(master, textvariable=fecha_ingreso)
-fecha_ingreso.grid(row=8, column=1)
+entry_fecha_ingreso = Entry(master, textvariable=fecha_ingreso)
+entry_fecha_ingreso.grid(row=8, column=1)
 
 label_fecha_egreso = Label(master, text="Fecha de Egreso")
 label_fecha_egreso.grid(row=9, column=0, sticky=W)
-fecha_egreso = Entry(master, textvariable=fecha_egreso)
-fecha_egreso.grid(row=9, column=1)
+entry_fecha_egreso = Entry(master, textvariable=fecha_egreso)
+entry_fecha_egreso.grid(row=9, column=1)
 
 label_sexo = Label(master, text="Sexo")
 label_sexo.grid(row=10, column=0, sticky=W)
-sexo = Entry(master, textvariable=sexo)
-sexo.grid(row=10, column=1)
+entry_sexo = Entry(master, textvariable=sexo)
+entry_sexo.grid(row=10, column=1)
+
+Boton_dni = Button(master, text="GUARDAR", command=guardar_usuario)
+Boton_dni.grid(row=11, column=1, sticky=E)
 
 ##2
 
