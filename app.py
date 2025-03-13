@@ -5,13 +5,13 @@ from tkinter import *
 import tkinter.ttk as ttk
 import sqlite3
 
-from click import DateTime
 
 """
 ______
 MODELO
 ______
 """
+
 
 def conectar_db():
     conn = sqlite3.connect('empleados.db')
@@ -27,9 +27,9 @@ def crear_tablas():
     cuil INTEGER NOT NULL,
     nombre TEXT NOT NULL,
     segundo_nombre TEXT NULL,
-    apellido TEXT NULL,
+    apellido TEXT NOT NULL,
     segundo_apellido TEXT NULL,
-    fecha_nacimiento DATE NULL,
+    fecha_nacimiento DATE NOT NULL,
     edad INTEGER NOT NULL,
     sexo INTEGER NOT NULL,
     fecha_ingreso DATE NOT NULL
