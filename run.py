@@ -1,1 +1,0 @@
-from modelo.model import
