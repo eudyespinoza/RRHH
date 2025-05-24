@@ -551,5 +551,6 @@ def main(page: ft.Page):
     # Cargar la tabla al inicio
     actualizar_tabla()
 
+
 if __name__ == "__main__":
     ft.app(target=main)
