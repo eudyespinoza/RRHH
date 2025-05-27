@@ -1,5 +1,26 @@
 import flet as ft
+from datetime import datetime
 from controlador.controlador import Controlador
+
+# Definir variables globales para evitar el uso de nonlocal
+nombre = None
+segundo_nombre = None
+apellido = None
+segundo_apellido = None
+dni = None
+cuit = None
+fecha_nacimiento_text = None
+fecha_ingreso_text = None
+fecha_egreso_text = None
+sexo = None
+direcciones_container = None
+telefonos_container = None
+cargos_container = None
+jornadas_container = None
+direcciones = []
+telefonos = []
+cargos = []
+jornadas = []
 
 def main(page: ft.Page):
     """Función principal que inicia la aplicación Flet para el ABM de empleados.
@@ -7,6 +28,11 @@ def main(page: ft.Page):
     Args:
         page (ft.Page): Página principal de la aplicación Flet.
     """
+    global nombre, segundo_nombre, apellido, segundo_apellido, dni, cuit, sexo
+    global fecha_nacimiento_text, fecha_ingreso_text, fecha_egreso_text
+    global direcciones_container, telefonos_container, cargos_container, jornadas_container
+    global direcciones, telefonos, cargos, jornadas
+
     controlador = Controlador()
     page.title = "ABM de Empleados"
     page.window_width = 1200
@@ -34,44 +60,23 @@ def main(page: ft.Page):
     # Contenedor para los detalles (inicialmente vacío)
     detalles_container = ft.Column([])
 
-    # Listas para manejar múltiples entradas
-    direcciones = []
-    telefonos = []
-    cargos = []
-    jornadas = []
+    # Añadir los DatePickers a page.overlay al inicio
+    fecha_nacimiento_picker = ft.DatePicker()
+    fecha_ingreso_picker = ft.DatePicker()
+    fecha_egreso_picker = ft.DatePicker()
+    page.overlay.extend([fecha_nacimiento_picker, fecha_ingreso_picker, fecha_egreso_picker])
 
-    # Campos del formulario (se definirán cuando se muestre el formulario)
-    nombre = None
-    segundo_nombre = None
-    apellido = None
-    segundo_apellido = None
-    dni = None
-    cuit = None
-    fecha_nacimiento = None
-    fecha_ingreso = None
-    fecha_egreso = None
-    sexo = None
-    calle = None
-    altura = None
-    localidad = None
-    provincia = None
-    codigo_postal = None
-    telefono = None
-    tipo = None
-    cargo = None
-    salario = None
-    fecha_inicio = None
-    fecha_fin = None
-    fecha = None
-    hora_de_entrada = None
-    hora_de_salida = None
-    direcciones_container = None
-    telefonos_container = None
-    cargos_container = None
-    jornadas_container = None
+    # Control dummy para mover el foco
+    dummy_focus_control = ft.TextField(visible=False)
+    page.add(dummy_focus_control)
 
     def limpiar_formulario():
         """Limpia todos los campos del formulario y las listas."""
+        global nombre, segundo_nombre, apellido, segundo_apellido, dni, cuit, sexo
+        global fecha_nacimiento_text, fecha_ingreso_text, fecha_egreso_text
+        global direcciones_container, telefonos_container, cargos_container, jornadas_container
+        global direcciones, telefonos, cargos, jornadas
+
         if nombre is not None:
             nombre.value = ""
             segundo_nombre.value = ""
@@ -79,34 +84,43 @@ def main(page: ft.Page):
             segundo_apellido.value = ""
             dni.value = ""
             cuit.value = ""
-            fecha_nacimiento.value = ""
-            fecha_ingreso.value = ""
-            fecha_egreso.value = ""
             sexo.value = ""
-            calle.value = ""
-            altura.value = ""
-            localidad.value = ""
-            provincia.value = ""
-            codigo_postal.value = ""
-            telefono.value = ""
-            tipo.value = ""
-            cargo.value = ""
-            salario.value = ""
-            fecha_inicio.value = ""
-            fecha_fin.value = ""
-            fecha.value = ""
-            hora_de_entrada.value = ""
-            hora_de_salida.value = ""
-            direcciones.clear()
-            telefonos.clear()
-            cargos.clear()
-            jornadas.clear()
+            fecha_nacimiento_text.value = ""
+            fecha_ingreso_text.value = ""
+            fecha_egreso_text.value = ""
+        direcciones.clear()
+        telefonos.clear()
+        cargos.clear()
+        jornadas.clear()
+        if direcciones_container is not None:
             direcciones_container.controls.clear()
             telefonos_container.controls.clear()
             cargos_container.controls.clear()
             jornadas_container.controls.clear()
         mensaje.value = ""
         page.update()
+
+    def abrir_date_picker(picker, text_field):
+        """Abre un DatePicker."""
+        try:
+            picker.open = True
+            mensaje.value += f" Abriendo DatePicker... Estado open: {picker.open}"
+            page.update()
+        except Exception as e:
+            mensaje.value += f" Error al abrir DatePicker: {str(e)}"
+            page.update()
+
+    def cerrar_date_picker(picker):
+        """Cierra un DatePicker y mueve el foco a un control dummy."""
+        try:
+            picker.open = False
+            mensaje.value += f" Cerrando DatePicker... Estado open: {picker.open}"
+            # Mover el foco al control dummy para evitar que el TextField reciba el foco de nuevo
+            dummy_focus_control.focus()
+            page.update()
+        except Exception as e:
+            mensaje.value += f" Error al cerrar DatePicker: {str(e)}"
+            page.update()
 
     def mostrar_formulario(modo="agregar", empleado=None):
         """Muestra el formulario para agregar o editar un empleado.
@@ -115,9 +129,9 @@ def main(page: ft.Page):
             modo (str): 'agregar' para nuevo empleado, 'editar' para modificar.
             empleado (dict, optional): Datos del empleado a editar.
         """
-        nonlocal nombre, segundo_nombre, apellido, segundo_apellido, dni, cuit, fecha_nacimiento, fecha_ingreso, fecha_egreso, sexo
-        nonlocal calle, altura, localidad, provincia, codigo_postal, telefono, tipo, cargo, salario, fecha_inicio, fecha_fin
-        nonlocal fecha, hora_de_entrada, hora_de_salida, direcciones_container, telefonos_container, cargos_container, jornadas_container
+        global nombre, segundo_nombre, apellido, segundo_apellido, dni, cuit, sexo
+        global fecha_nacimiento_text, fecha_ingreso_text, fecha_egreso_text
+        global direcciones_container, telefonos_container, cargos_container, jornadas_container
 
         # Limpiar contenedores
         formulario_container.controls.clear()
@@ -130,94 +144,47 @@ def main(page: ft.Page):
         segundo_apellido = ft.TextField(label="Segundo Apellido", width=200, value=empleado["segundo_apellido"] if empleado else "")
         dni = ft.TextField(label="DNI", width=200, value=empleado["dni"] if empleado else "", read_only=modo == "editar")
         cuit = ft.TextField(label="CUIT", width=200, value=empleado["cuit"] if empleado else "")
-        fecha_nacimiento = ft.TextField(label="Fecha de Nacimiento", width=200, value=empleado["fecha_nacimiento"] if empleado else "")
-        fecha_ingreso = ft.TextField(label="Fecha de Ingreso", width=200, value=empleado["fecha_ingreso"] if empleado else "")
-        fecha_egreso = ft.TextField(label="Fecha de Egreso", width=200, value=empleado["fecha_egreso"] if empleado else "")
         sexo = ft.TextField(label="Sexo", width=200, value=empleado["sexo"] if empleado else "")
 
-        # Campos para agregar dirección
-        calle = ft.TextField(label="Calle", width=200)
-        altura = ft.TextField(label="Altura", width=200)
-        localidad = ft.TextField(label="Localidad", width=200)
-        provincia = ft.TextField(label="Provincia", width=200)
-        codigo_postal = ft.TextField(label="Código Postal", width=200)
+        # Campos de texto para mostrar las fechas seleccionadas
+        fecha_nacimiento_text = ft.TextField(label="Fecha de Nacimiento (YYYY-MM-DD)", width=200,
+                                             value=empleado["fecha_nacimiento"] if empleado and empleado["fecha_nacimiento"] else "")
+        fecha_nacimiento_picker.on_change = lambda e: (
+            fecha_nacimiento_text.__setattr__("value", e.control.value.strftime("%Y-%m-%d") if e.control.value else ""),
+            cerrar_date_picker(fecha_nacimiento_picker)
+        )
+        fecha_nacimiento_picker.on_dismiss = lambda e: cerrar_date_picker(fecha_nacimiento_picker)
+        fecha_nacimiento_text.on_focus = lambda e: abrir_date_picker(fecha_nacimiento_picker, fecha_nacimiento_text)
+
+        fecha_ingreso_text = ft.TextField(label="Fecha de Ingreso (YYYY-MM-DD)", width=200,
+                                          value=empleado["fecha_ingreso"] if empleado and empleado["fecha_ingreso"] else "")
+        fecha_ingreso_picker.on_change = lambda e: (
+            fecha_ingreso_text.__setattr__("value", e.control.value.strftime("%Y-%m-%d") if e.control.value else ""),
+            cerrar_date_picker(fecha_ingreso_picker)
+        )
+        fecha_ingreso_picker.on_dismiss = lambda e: cerrar_date_picker(fecha_ingreso_picker)
+        fecha_ingreso_text.on_focus = lambda e: abrir_date_picker(fecha_ingreso_picker, fecha_ingreso_text)
+
+        fecha_egreso_text = ft.TextField(label="Fecha de Egreso (YYYY-MM-DD)", width=200,
+                                         value=empleado["fecha_egreso"] if empleado and empleado["fecha_egreso"] else "")
+        fecha_egreso_picker.on_change = lambda e: (
+            fecha_egreso_text.__setattr__("value", e.control.value.strftime("%Y-%m-%d") if e.control.value else ""),
+            cerrar_date_picker(fecha_egreso_picker)
+        )
+        fecha_egreso_picker.on_dismiss = lambda e: cerrar_date_picker(fecha_egreso_picker)
+        fecha_egreso_text.on_focus = lambda e: abrir_date_picker(fecha_egreso_picker, fecha_egreso_text)
+
+        # Contenedores para listas de datos múltiples
         direcciones_container = ft.Column([])
-
-        def agregar_direccion_input(e):
-            """Agrega una dirección a la lista temporal y la muestra en la interfaz."""
-            direccion = {
-                "calle": calle.value,
-                "altura": altura.value,
-                "localidad": localidad.value,
-                "provincia": provincia.value,
-                "codigo_postal": codigo_postal.value
-            }
-            direcciones.append(direccion)
-            direcciones_container.controls.append(
-                ft.Text(f"Dirección: {calle.value} {altura.value}, {localidad.value}")
-            )
-            calle.value = altura.value = localidad.value = provincia.value = codigo_postal.value = ""
-            page.update()
-
-        # Campos para agregar teléfono
-        telefono = ft.TextField(label="Teléfono", width=200)
-        tipo = ft.TextField(label="Tipo", width=200)
         telefonos_container = ft.Column([])
-
-        def agregar_telefono_input(e):
-            """Agrega un teléfono a la lista temporal y lo muestra en la interfaz."""
-            tel = {
-                "telefono": telefono.value,
-                "tipo": tipo.value
-            }
-            telefonos.append(tel)
-            telefonos_container.controls.append(
-                ft.Text(f"Teléfono: {telefono.value} ({tipo.value})")
-            )
-            telefono.value = tipo.value = ""
-            page.update()
-
-        # Campos para agregar cargo
-        cargo = ft.TextField(label="Cargo", width=200)
-        salario = ft.TextField(label="Salario", width=200)
-        fecha_inicio = ft.TextField(label="Fecha Inicio", width=200)
-        fecha_fin = ft.TextField(label="Fecha Fin", width=200)
         cargos_container = ft.Column([])
-
-        def agregar_cargo_input(e):
-            """Agrega un cargo a la lista temporal y lo muestra en la interfaz."""
-            carg = {
-                "cargo": cargo.value,
-                "salario": salario.value,
-                "fecha_inicio": fecha_inicio.value,
-                "fecha_fin": fecha_fin.value
-            }
-            cargos.append(carg)
-            cargos_container.controls.append(
-                ft.Text(f"Cargo: {cargo.value}, Salario: {salario.value}")
-            )
-            cargo.value = salario.value = fecha_inicio.value = fecha_fin.value = ""
-            page.update()
-
-        # Campos para agregar jornada laboral
-        fecha = ft.TextField(label="Fecha", width=200)
-        hora_de_entrada = ft.TextField(label="Hora de Entrada", width=200)
-        hora_de_salida = ft.TextField(label="Hora de Salida", width=200)
         jornadas_container = ft.Column([])
 
-        def agregar_jornada_input(e):
-            """Agrega una jornada laboral a la lista temporal y la muestra en la interfaz."""
-            jornada = {
-                "fecha": fecha.value,
-                "hora_de_entrada": hora_de_entrada.value,
-                "hora_de_salida": hora_de_salida.value
-            }
-            jornadas.append(jornada)
-            jornadas_container.controls.append(
-                ft.Text(f"Jornada: {fecha.value}, {hora_de_entrada.value} - {hora_de_salida.value}")
-            )
-            fecha.value = hora_de_entrada.value = hora_de_salida.value = ""
-            page.update()
+        # Botones para agregar nuevas entradas
+        btn_agregar_direccion = ft.ElevatedButton("Agregar Dirección", on_click=lambda e: mostrar_formulario_direccion())
+        btn_agregar_telefono = ft.ElevatedButton("Agregar Teléfono", on_click=lambda e: mostrar_formulario_telefono())
+        btn_agregar_cargo = ft.ElevatedButton("Agregar Cargo", on_click=lambda e: mostrar_formulario_cargo())
+        btn_agregar_jornada = ft.ElevatedButton("Agregar Jornada", on_click=lambda e: mostrar_formulario_jornada())
 
         # Cargar datos existentes si es modo editar
         if modo == "editar" and empleado:
@@ -227,7 +194,7 @@ def main(page: ft.Page):
                     ft.Row([
                         ft.Text(f"Dirección: {d['calle']} {d['altura']}, {d['localidad']}"),
                         ft.ElevatedButton("Modificar",
-                            on_click=lambda e, d_id=d['id']: modificar_direccion_form(d_id)),
+                            on_click=lambda e, d_id=d['id']: mostrar_formulario_direccion(d_id)),
                         ft.ElevatedButton("Eliminar",
                             on_click=lambda e, d_id=d['id']: eliminar_direccion(d_id))
                     ])
@@ -238,7 +205,7 @@ def main(page: ft.Page):
                     ft.Row([
                         ft.Text(f"Teléfono: {t['telefono']} ({t['tipo']})"),
                         ft.ElevatedButton("Modificar",
-                            on_click=lambda e, t_id=t['id']: modificar_telefono_form(t_id)),
+                            on_click=lambda e, t_id=t['id']: mostrar_formulario_telefono(t_id)),
                         ft.ElevatedButton("Eliminar",
                             on_click=lambda e, t_id=t['id']: eliminar_telefono(t_id))
                     ])
@@ -249,7 +216,7 @@ def main(page: ft.Page):
                     ft.Row([
                         ft.Text(f"Cargo: {c['cargo']}, Salario: {c['salario']}"),
                         ft.ElevatedButton("Modificar",
-                            on_click=lambda e, c_id=c['id']: modificar_cargo_form(c_id)),
+                            on_click=lambda e, c_id=c['id']: mostrar_formulario_cargo(c_id)),
                         ft.ElevatedButton("Eliminar",
                             on_click=lambda e, c_id=c['id']: eliminar_cargo(c_id))
                     ])
@@ -260,7 +227,7 @@ def main(page: ft.Page):
                     ft.Row([
                         ft.Text(f"Jornada: {j['fecha']}, {j['hora_de_entrada']} - {j['hora_de_salida']}"),
                         ft.ElevatedButton("Modificar",
-                            on_click=lambda e, j_id=j['id']: modificar_jornada_form(j_id)),
+                            on_click=lambda e, j_id=j['id']: mostrar_formulario_jornada(j_id)),
                         ft.ElevatedButton("Eliminar",
                             on_click=lambda e, j_id=j['id']: eliminar_jornada(j_id))
                     ])
@@ -277,26 +244,29 @@ def main(page: ft.Page):
         # Organizar los campos en columnas
         columna1 = ft.Column([
             nombre, segundo_nombre, apellido, segundo_apellido, dni, cuit,
-            fecha_nacimiento, fecha_ingreso, fecha_egreso, sexo
+            fecha_nacimiento_text,
+            fecha_ingreso_text,
+            fecha_egreso_text,
+            sexo
         ])
         columna2 = ft.Column([
-            calle, altura, localidad, provincia, codigo_postal,
-            ft.ElevatedButton("Agregar Dirección", on_click=agregar_direccion_input),
+            ft.Text("Direcciones"),
+            btn_agregar_direccion,
             direcciones_container
         ])
         columna3 = ft.Column([
-            telefono, tipo,
-            ft.ElevatedButton("Agregar Teléfono", on_click=agregar_telefono_input),
+            ft.Text("Teléfonos"),
+            btn_agregar_telefono,
             telefonos_container
         ])
         columna4 = ft.Column([
-            cargo, salario, fecha_inicio, fecha_fin,
-            ft.ElevatedButton("Agregar Cargo", on_click=agregar_cargo_input),
+            ft.Text("Cargos"),
+            btn_agregar_cargo,
             cargos_container
         ])
         columna5 = ft.Column([
-            fecha, hora_de_entrada, hora_de_salida,
-            ft.ElevatedButton("Agregar Jornada", on_click=agregar_jornada_input),
+            ft.Text("Jornadas Laborales"),
+            btn_agregar_jornada,
             jornadas_container
         ])
 
@@ -310,60 +280,382 @@ def main(page: ft.Page):
         ]
         page.update()
 
+    def mostrar_formulario_direccion(direccion_id=None):
+        """Muestra un diálogo para agregar o modificar una dirección.
+
+        Args:
+            direccion_id (int, optional): ID de la dirección a modificar.
+        """
+        global direcciones, direcciones_container
+
+        try:
+            direccion = next((d for d in direcciones if d['id'] == direccion_id), None) if direccion_id else None
+
+            calle_input = ft.TextField(label="Calle", value=direccion["calle"] if direccion else "")
+            altura_input = ft.TextField(label="Altura", value=direccion["altura"] if direccion else "")
+            localidad_input = ft.TextField(label="Localidad", value=direccion["localidad"] if direccion else "")
+            provincia_input = ft.TextField(label="Provincia", value=direccion["provincia"] if direccion else "")
+            codigo_postal_input = ft.TextField(label="Código Postal", value=direccion["codigo_postal"] if direccion else "")
+
+            def guardar_direccion(e):
+                global direcciones
+                nueva_direccion = {
+                    "id": direccion_id,
+                    "calle": calle_input.value or "",
+                    "altura": altura_input.value or "",
+                    "localidad": localidad_input.value or "",
+                    "provincia": provincia_input.value or "",
+                    "codigo_postal": codigo_postal_input.value or ""
+                }
+                if direccion_id:
+                    # Modificar dirección existente
+                    if any(d['id'] == direccion_id for d in direcciones):
+                        direcciones[:] = [d for d in direcciones if d['id'] != direccion_id]
+                    direcciones.append(nueva_direccion)
+                    exito, msg = controlador.modificar_direccion(direccion_id, nueva_direccion)
+                    mensaje.value = msg
+                else:
+                    # Agregar nueva dirección (se guardará en la DB al guardar el empleado)
+                    direcciones.append(nueva_direccion)
+                cerrar_dialogo()
+                mostrar_formulario(modo="editar" if dni.value else "agregar", empleado=controlador.obtener_empleado(dni.value) if dni.value else None)
+                page.update()
+
+            dialogo = ft.AlertDialog(
+                title=ft.Text("Agregar Dirección" if not direccion_id else "Modificar Dirección"),
+                content=ft.Column([
+                    calle_input, altura_input, localidad_input, provincia_input, codigo_postal_input
+                ]),
+                actions=[
+                    ft.ElevatedButton("Guardar", on_click=guardar_direccion),
+                    ft.ElevatedButton("Cancelar", on_click=lambda e: cerrar_dialogo())
+                ],
+                modal=True
+            )
+            page.overlay.append(dialogo)
+            page.dialog = dialogo
+            dialogo.open = True
+            page.update()
+        except Exception as e:
+            mensaje.value = f"Error al mostrar formulario de dirección: {str(e)}"
+            page.update()
+
+    def mostrar_formulario_telefono(telefono_id=None):
+        """Muestra un diálogo para agregar o modificar un teléfono.
+
+        Args:
+            telefono_id (int, optional): ID del teléfono a modificar.
+        """
+        global telefonos, telefonos_container
+
+        try:
+            telefono_data = next((t for t in telefonos if t['id'] == telefono_id), None) if telefono_id else None
+
+            telefono_input = ft.TextField(label="Teléfono", value=telefono_data["telefono"] if telefono_data else "")
+            tipo_input = ft.TextField(label="Tipo", value=telefono_data["tipo"] if telefono_data else "")
+
+            def guardar_telefono(e):
+                global telefonos
+                nuevo_telefono = {
+                    "id": telefono_id,
+                    "telefono": telefono_input.value or "",
+                    "tipo": tipo_input.value or ""
+                }
+                if telefono_id:
+                    # Modificar teléfono existente
+                    if any(t['id'] == telefono_id for t in telefonos):
+                        telefonos[:] = [t for t in telefonos if t['id'] != telefono_id]
+                    telefonos.append(nuevo_telefono)
+                    exito, msg = controlador.modificar_telefono(telefono_id, nuevo_telefono["telefono"], nuevo_telefono["tipo"])
+                    mensaje.value = msg
+                else:
+                    # Agregar nuevo teléfono
+                    telefonos.append(nuevo_telefono)
+                cerrar_dialogo()
+                mostrar_formulario(modo="editar" if dni.value else "agregar", empleado=controlador.obtener_empleado(dni.value) if dni.value else None)
+                page.update()
+
+            dialogo = ft.AlertDialog(
+                title=ft.Text("Agregar Teléfono" if not telefono_id else "Modificar Teléfono"),
+                content=ft.Column([telefono_input, tipo_input]),
+                actions=[
+                    ft.ElevatedButton("Guardar", on_click=guardar_telefono),
+                    ft.ElevatedButton("Cancelar", on_click=lambda e: cerrar_dialogo())
+                ],
+                modal=True
+            )
+            page.overlay.append(dialogo)
+            page.dialog = dialogo
+            dialogo.open = True
+            page.update()
+        except Exception as e:
+            mensaje.value = f"Error al mostrar formulario de teléfono: {str(e)}"
+            page.update()
+
+    def mostrar_formulario_cargo(cargo_id=None):
+        """Muestra un diálogo para agregar o modificar un cargo.
+
+        Args:
+            cargo_id (int, optional): ID del cargo a modificar.
+        """
+        global cargos, cargos_container
+
+        try:
+            cargo_data = next((c for c in cargos if c['id'] == cargo_id), None) if cargo_id else None
+
+            cargo_input = ft.TextField(label="Cargo", value=cargo_data["cargo"] if cargo_data else "")
+            salario_input = ft.TextField(label="Salario", value=cargo_data["salario"] if cargo_data else "")
+            fecha_inicio_text = ft.TextField(label="Fecha Inicio (YYYY-MM-DD)", width=200,
+                                             value=cargo_data["fecha_inicio"] if cargo_data and cargo_data["fecha_inicio"] else "")
+            fecha_fin_text = ft.TextField(label="Fecha Fin (YYYY-MM-DD)", width=200,
+                                          value=cargo_data["fecha_fin"] if cargo_data and cargo_data["fecha_fin"] else "")
+
+            fecha_inicio_picker = ft.DatePicker()
+            fecha_fin_picker = ft.DatePicker()
+            page.overlay.extend([fecha_inicio_picker, fecha_fin_picker])
+
+            fecha_inicio_picker.on_change = lambda e: (
+                fecha_inicio_text.__setattr__("value", e.control.value.strftime("%Y-%m-%d") if e.control.value else ""),
+                cerrar_date_picker(fecha_inicio_picker)
+            )
+            fecha_inicio_picker.on_dismiss = lambda e: cerrar_date_picker(fecha_inicio_picker)
+            fecha_inicio_text.on_focus = lambda e: abrir_date_picker(fecha_inicio_picker, fecha_inicio_text)
+
+            fecha_fin_picker.on_change = lambda e: (
+                fecha_fin_text.__setattr__("value", e.control.value.strftime("%Y-%m-%d") if e.control.value else ""),
+                cerrar_date_picker(fecha_fin_picker)
+            )
+            fecha_fin_picker.on_dismiss = lambda e: cerrar_date_picker(fecha_fin_picker)
+            fecha_fin_text.on_focus = lambda e: abrir_date_picker(fecha_fin_picker, fecha_fin_text)
+
+            def guardar_cargo(e):
+                global cargos
+                nuevo_cargo = {
+                    "id": cargo_id,
+                    "cargo": cargo_input.value or "",
+                    "salario": salario_input.value or "",
+                    "fecha_inicio": fecha_inicio_text.value or "",
+                    "fecha_fin": fecha_fin_text.value or ""
+                }
+                if cargo_id:
+                    # Modificar cargo existente
+                    if any(c['id'] == cargo_id for c in cargos):
+                        cargos[:] = [c for c in cargos if c['id'] != cargo_id]
+                    cargos.append(nuevo_cargo)
+                    exito, msg = controlador.modificar_cargo(cargo_id, nuevo_cargo["cargo"], nuevo_cargo["salario"],
+                                                             nuevo_cargo["fecha_inicio"], nuevo_cargo["fecha_fin"])
+                    mensaje.value = msg
+                else:
+                    # Agregar nuevo cargo
+                    cargos.append(nuevo_cargo)
+                cerrar_dialogo()
+                mostrar_formulario(modo="editar" if dni.value else "agregar", empleado=controlador.obtener_empleado(dni.value) if dni.value else None)
+                page.update()
+
+            dialogo = ft.AlertDialog(
+                title=ft.Text("Agregar Cargo" if not cargo_id else "Modificar Cargo"),
+                content=ft.Column([
+                    cargo_input, salario_input,
+                    fecha_inicio_text,
+                    fecha_fin_text
+                ]),
+                actions=[
+                    ft.ElevatedButton("Guardar", on_click=guardar_cargo),
+                    ft.ElevatedButton("Cancelar", on_click=lambda e: cerrar_dialogo())
+                ],
+                modal=True
+            )
+            page.overlay.append(dialogo)
+            page.dialog = dialogo
+            dialogo.open = True
+            page.update()
+        except Exception as e:
+            mensaje.value = f"Error al mostrar formulario de cargo: {str(e)}"
+            page.update()
+
+    def mostrar_formulario_jornada(jornada_id=None):
+        """Muestra un diálogo para agregar o modificar una jornada laboral.
+
+        Args:
+            jornada_id (int, optional): ID de la jornada a modificar.
+        """
+        global jornadas, jornadas_container
+
+        try:
+            jornada_data = next((j for j in jornadas if j['id'] == jornada_id), None) if jornada_id else None
+
+            fecha_text = ft.TextField(label="Fecha (YYYY-MM-DD)", width=200,
+                                      value=jornada_data["fecha"] if jornada_data and jornada_data["fecha"] else "")
+            fecha_picker = ft.DatePicker()
+            page.overlay.append(fecha_picker)
+            fecha_picker.on_change = lambda e: (
+                fecha_text.__setattr__("value", e.control.value.strftime("%Y-%m-%d") if e.control.value else ""),
+                cerrar_date_picker(fecha_picker)
+            )
+            fecha_picker.on_dismiss = lambda e: cerrar_date_picker(fecha_picker)
+            fecha_text.on_focus = lambda e: abrir_date_picker(fecha_picker, fecha_text)
+
+            hora_entrada_input = ft.TextField(label="Hora de Entrada", value=jornada_data["hora_de_entrada"] if jornada_data else "")
+            hora_salida_input = ft.TextField(label="Hora de Salida", value=jornada_data["hora_de_salida"] if jornada_data else "")
+
+            def guardar_jornada(e):
+                global jornadas
+                nueva_jornada = {
+                    "id": jornada_id,
+                    "fecha": fecha_text.value or "",
+                    "hora_de_entrada": hora_entrada_input.value or "",
+                    "hora_de_salida": hora_salida_input.value or ""
+                }
+                if jornada_id:
+                    # Modificar jornada existente
+                    if any(j['id'] == jornada_id for j in jornadas):
+                        jornadas[:] = [j for j in jornadas if j['id'] != jornada_id]
+                    jornadas.append(nueva_jornada)
+                    exito, msg = controlador.modificar_jornada(jornada_id, nueva_jornada["fecha"],
+                                                               nueva_jornada["hora_de_entrada"], nueva_jornada["hora_de_salida"])
+                    mensaje.value = msg
+                else:
+                    # Agregar nueva jornada
+                    jornadas.append(nueva_jornada)
+                cerrar_dialogo()
+                mostrar_formulario(modo="editar" if dni.value else "agregar", empleado=controlador.obtener_empleado(dni.value) if dni.value else None)
+                page.update()
+
+            dialogo = ft.AlertDialog(
+                title=ft.Text("Agregar Jornada" if not jornada_id else "Modificar Jornada"),
+                content=ft.Column([
+                    fecha_text,
+                    hora_entrada_input,
+                    hora_salida_input
+                ]),
+                actions=[
+                    ft.ElevatedButton("Guardar", on_click=guardar_jornada),
+                    ft.ElevatedButton("Cancelar", on_click=lambda e: cerrar_dialogo())
+                ],
+                modal=True
+            )
+            page.overlay.append(dialogo)
+            page.dialog = dialogo
+            dialogo.open = True
+            page.update()
+        except Exception as e:
+            mensaje.value = f"Error al mostrar formulario de jornada: {str(e)}"
+            page.update()
+
+    def cerrar_dialogo():
+        """Cierra el diálogo actual."""
+        if page.dialog:
+            page.dialog.open = False
+        page.update()
+
     def cerrar_formulario():
         """Cierra el formulario y limpia los datos."""
-        formulario_container.controls.clear()
-        detalles_container.controls.clear()
         limpiar_formulario()
         page.update()
 
     def guardar_usuario():
         """Guarda un nuevo empleado en la base de datos."""
-        datos = {
-            "dni": dni.value,
-            "cuit": cuit.value,
-            "nombre": nombre.value,
-            "segundo_nombre": segundo_nombre.value,
-            "apellido": apellido.value,
-            "segundo_apellido": segundo_apellido.value,
-            "fecha_nacimiento": fecha_nacimiento.value,
-            "edad": "0",
-            "sexo": sexo.value,
-            "fecha_ingreso": fecha_ingreso.value,
-            "fecha_egreso": fecha_egreso.value,
-            "direcciones": direcciones,
-            "telefonos": telefonos,
-            "cargos": cargos,
-            "jornadas": jornadas
-        }
-        exito, msg = controlador.agregar_empleado(datos)
-        mensaje.value = msg
-        if exito:
-            actualizar_tabla()
-            cerrar_formulario()
-        page.update()
+        global direcciones, telefonos, cargos, jornadas
+        global dni, cuit, nombre, segundo_nombre, apellido, segundo_apellido, sexo
+        global fecha_nacimiento_text, fecha_ingreso_text, fecha_egreso_text
+
+        try:
+            # Depuración: Mostrar el contenido de las listas antes de guardar
+            mensaje.value = (f"Guardando empleado... Direcciones: {direcciones}, "
+                             f"Teléfonos: {telefonos}, Cargos: {cargos}, Jornadas: {jornadas}")
+            page.update()
+
+            datos = {
+                "dni": dni.value or "",
+                "cuit": cuit.value or "",
+                "nombre": nombre.value or "",
+                "segundo_nombre": segundo_nombre.value or "",
+                "apellido": apellido.value or "",
+                "segundo_apellido": segundo_apellido.value or "",
+                "fecha_nacimiento": fecha_nacimiento_text.value or "",
+                "edad": "0",
+                "sexo": sexo.value or "",
+                "fecha_ingreso": fecha_ingreso_text.value or "",
+                "fecha_egreso": fecha_egreso_text.value or "",
+                "direcciones": [],
+                "telefonos": [],
+                "cargos": [],
+                "jornadas": []
+            }
+            exito, msg, empleado_id = controlador.agregar_empleado(datos)
+            if exito:
+                # Guardar direcciones
+                for direccion in direcciones:
+                    if any(direccion.values()):  # Verificar que la dirección no esté vacía
+                        exito_d, msg_d = controlador.agregar_direccion(empleado_id, direccion)
+                        if not exito_d:
+                            mensaje.value += f" Error al guardar dirección: {msg_d}"
+                        else:
+                            mensaje.value += f" Dirección guardada: {direccion}"
+                # Guardar teléfonos
+                for telefono in telefonos:
+                    if telefono["telefono"]:
+                        exito_t, msg_t = controlador.agregar_telefono(empleado_id, telefono["telefono"], telefono["tipo"])
+                        if not exito_t:
+                            mensaje.value += f" Error al guardar teléfono: {msg_t}"
+                        else:
+                            mensaje.value += f" Teléfono guardado: {telefono}"
+                # Guardar cargos
+                for cargo in cargos:
+                    if cargo["cargo"]:
+                        exito_c, msg_c = controlador.agregar_cargo(empleado_id, cargo["cargo"], cargo["salario"],
+                                                                   cargo["fecha_inicio"], cargo["fecha_fin"])
+                        if not exito_c:
+                            mensaje.value += f" Error al guardar cargo: {msg_c}"
+                        else:
+                            mensaje.value += f" Cargo guardado: {cargo}"
+                # Guardar jornadas
+                for jornada in jornadas:
+                    if jornada["fecha"] or jornada["hora_de_entrada"] or jornada["hora_de_salida"]:
+                        exito_j, msg_j = controlador.agregar_jornada(empleado_id, jornada["fecha"],
+                                                                     jornada["hora_de_entrada"], jornada["hora_de_salida"])
+                        if not exito_j:
+                            mensaje.value += f" Error al guardar jornada: {msg_j}"
+                        else:
+                            mensaje.value += f" Jornada guardada: {jornada}"
+                mensaje.value = "Empleado y datos asociados agregados con éxito."
+                actualizar_tabla()
+                cerrar_formulario()
+            else:
+                mensaje.value = msg
+            page.update()
+        except Exception as e:
+            mensaje.value = f"Error al guardar empleado: {str(e)}"
+            page.update()
 
     def modificar_usuario():
         """Modifica los datos de un empleado existente."""
-        datos = {
-            "dni": dni.value,
-            "cuit": cuit.value,
-            "nombre": nombre.value,
-            "segundo_nombre": segundo_nombre.value,
-            "apellido": apellido.value,
-            "segundo_apellido": segundo_apellido.value,
-            "fecha_nacimiento": fecha_nacimiento.value,
-            "edad": "0",
-            "sexo": sexo.value,
-            "fecha_ingreso": fecha_ingreso.value,
-            "fecha_egreso": fecha_egreso.value
-        }
-        exito, msg = controlador.modificar_empleado(dni.value, datos)
-        mensaje.value = msg
-        if exito:
-            actualizar_tabla()
-            cerrar_formulario()
-        page.update()
+        global dni, cuit, nombre, segundo_nombre, apellido, segundo_apellido, sexo
+        global fecha_nacimiento_text, fecha_ingreso_text, fecha_egreso_text
+
+        try:
+            datos = {
+                "dni": dni.value or "",
+                "cuit": cuit.value or "",
+                "nombre": nombre.value or "",
+                "segundo_nombre": segundo_nombre.value or "",
+                "apellido": apellido.value or "",
+                "segundo_apellido": segundo_apellido.value or "",
+                "fecha_nacimiento": fecha_nacimiento_text.value or "",
+                "edad": "0",
+                "sexo": sexo.value or "",
+                "fecha_ingreso": fecha_ingreso_text.value or "",
+                "fecha_egreso": fecha_egreso_text.value or ""
+            }
+            exito, msg = controlador.modificar_empleado(dni.value, datos)
+            mensaje.value = msg
+            if exito:
+                actualizar_tabla()
+                cerrar_formulario()
+            page.update()
+        except Exception as e:
+            mensaje.value = f"Error al modificar empleado: {str(e)}"
+            page.update()
 
     def ver_detalles(empleado):
         """Muestra los detalles de un empleado en modo solo lectura.
@@ -448,83 +740,18 @@ def main(page: ft.Page):
         formulario_container.controls.clear()
         page.update()
 
-    def modificar_direccion_form(direccion_id):
-        """Abre un formulario para modificar una dirección.
-
-        Args:
-            direccion_id (int): ID de la dirección a modificar.
-        """
-        for d in direcciones:
-            if d['id'] == direccion_id:
-                calle.value = d['calle']
-                altura.value = d['altura']
-                localidad.value = d['localidad']
-                provincia.value = d['provincia']
-                codigo_postal.value = d['codigo_postal']
-                break
-
-        def guardar_modificacion(e):
-            direccion = {
-                "calle": calle.value,
-                "altura": altura.value,
-                "localidad": localidad.value,
-                "provincia": provincia.value,
-                "codigo_postal": codigo_postal.value
-            }
-            exito, msg = controlador.modificar_direccion(direccion_id, direccion)
-            mensaje.value = msg
-            if exito:
-                empleado = controlador.obtener_empleado(dni.value)
-                mostrar_formulario(modo="editar", empleado=empleado)
-                calle.value = altura.value = localidad.value = provincia.value = codigo_postal.value = ""
-            page.update()
-
-        formulario_container.controls.append(
-            ft.Row([
-                ft.ElevatedButton("Guardar Modificación", on_click=guardar_modificacion)
-            ])
-        )
-        page.update()
-
     def eliminar_direccion(direccion_id):
         """Elimina una dirección asociada a un empleado.
 
         Args:
             direccion_id (int): ID de la dirección a eliminar.
         """
+        global direcciones
         exito, msg = controlador.eliminar_direccion(direccion_id)
         mensaje.value = msg
         if exito:
             empleado = controlador.obtener_empleado(dni.value)
             mostrar_formulario(modo="editar", empleado=empleado)
-        page.update()
-
-    def modificar_telefono_form(telefono_id):
-        """Abre un formulario para modificar un teléfono.
-
-        Args:
-            telefono_id (int): ID del teléfono a modificar.
-        """
-        for t in telefonos:
-            if t['id'] == telefono_id:
-                telefono.value = t['telefono']
-                tipo.value = t['tipo']
-                break
-
-        def guardar_modificacion(e):
-            exito, msg = controlador.modificar_telefono(telefono_id, telefono.value, tipo.value)
-            mensaje.value = msg
-            if exito:
-                empleado = controlador.obtener_empleado(dni.value)
-                mostrar_formulario(modo="editar", empleado=empleado)
-                telefono.value = tipo.value = ""
-            page.update()
-
-        formulario_container.controls.append(
-            ft.Row([
-                ft.ElevatedButton("Guardar Modificación", on_click=guardar_modificacion)
-            ])
-        )
         page.update()
 
     def eliminar_telefono(telefono_id):
@@ -533,42 +760,12 @@ def main(page: ft.Page):
         Args:
             telefono_id (int): ID del teléfono a eliminar.
         """
+        global telefonos
         exito, msg = controlador.eliminar_telefono(telefono_id)
         mensaje.value = msg
         if exito:
             empleado = controlador.obtener_empleado(dni.value)
             mostrar_formulario(modo="editar", empleado=empleado)
-        page.update()
-
-    def modificar_cargo_form(cargo_id):
-        """Abre un formulario para modificar un cargo.
-
-        Args:
-            cargo_id (int): ID del cargo a modificar.
-        """
-        for c in cargos:
-            if c['id'] == cargo_id:
-                cargo.value = c['cargo']
-                salario.value = c['salario']
-                fecha_inicio.value = c['fecha_inicio']
-                fecha_fin.value = c['fecha_fin']
-                break
-
-        def guardar_modificacion(e):
-            exito, msg = controlador.modificar_cargo(cargo_id, cargo.value, salario.value,
-                                                    fecha_inicio.value, fecha_fin.value)
-            mensaje.value = msg
-            if exito:
-                empleado = controlador.obtener_empleado(dni.value)
-                mostrar_formulario(modo="editar", empleado=empleado)
-                cargo.value = salario.value = fecha_inicio.value = fecha_fin.value = ""
-            page.update()
-
-        formulario_container.controls.append(
-            ft.Row([
-                ft.ElevatedButton("Guardar Modificación", on_click=guardar_modificacion)
-            ])
-        )
         page.update()
 
     def eliminar_cargo(cargo_id):
@@ -577,41 +774,12 @@ def main(page: ft.Page):
         Args:
             cargo_id (int): ID del cargo a eliminar.
         """
+        global cargos
         exito, msg = controlador.eliminar_cargo(cargo_id)
         mensaje.value = msg
         if exito:
             empleado = controlador.obtener_empleado(dni.value)
             mostrar_formulario(modo="editar", empleado=empleado)
-        page.update()
-
-    def modificar_jornada_form(jornada_id):
-        """Abre un formulario para modificar una jornada laboral.
-
-        Args:
-            jornada_id (int): ID de la jornada a modificar.
-        """
-        for j in jornadas:
-            if j['id'] == jornada_id:
-                fecha.value = j['fecha']
-                hora_de_entrada.value = j['hora_de_entrada']
-                hora_de_salida.value = j['hora_de_salida']
-                break
-
-        def guardar_modificacion(e):
-            exito, msg = controlador.modificar_jornada(jornada_id, fecha.value,
-                                                      hora_de_entrada.value, hora_de_salida.value)
-            mensaje.value = msg
-            if exito:
-                empleado = controlador.obtener_empleado(dni.value)
-                mostrar_formulario(modo="editar", empleado=empleado)
-                fecha.value = hora_de_entrada.value = hora_de_salida.value = ""
-            page.update()
-
-        formulario_container.controls.append(
-            ft.Row([
-                ft.ElevatedButton("Guardar Modificación", on_click=guardar_modificacion)
-            ])
-        )
         page.update()
 
     def eliminar_jornada(jornada_id):
@@ -620,6 +788,7 @@ def main(page: ft.Page):
         Args:
             jornada_id (int): ID de la jornada a eliminar.
         """
+        global jornadas
         exito, msg = controlador.eliminar_jornada(jornada_id)
         mensaje.value = msg
         if exito:
