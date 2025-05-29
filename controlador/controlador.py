@@ -9,15 +9,11 @@ class Controlador:
         self.db = Database()
 
     def agregar_empleado(self, datos):
-        """Agrega un nuevo empleado y sus datos asociados.
-
-        Args:
-            datos (dict): Diccionario con los datos del empleado y sus listas asociadas.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
+        """Agrega un nuevo empleado y sus datos asociados."""
         try:
+            # Iniciar transacción
+            self.db.create_connection()
+
             empleado = Empleado(
                 datos["dni"], datos["cuit"], datos["nombre"], datos["segundo_nombre"],
                 datos["apellido"], datos["segundo_apellido"], datos["fecha_nacimiento"],
@@ -26,42 +22,67 @@ class Controlador:
             empleado.validar()
             exito, msg, empleado_id = self.db.agregar_empleado(empleado.to_dict())
             if not exito:
-                return exito, msg
+                self.db.rollback()
+                return exito, msg, None
 
-            for direccion in datos["direcciones"]:
-                if any([direccion["calle"], direccion["altura"], direccion["localidad"],
-                        direccion["provincia"], direccion["codigo_postal"]]):
-                    self.db.agregar_direccion(empleado_id, direccion)
+            # Agregar direcciones
+            for direccion in datos.get("direcciones", []):
+                if any([direccion.get("calle"), direccion.get("altura"), direccion.get("localidad"),
+                        direccion.get("provincia"), direccion.get("codigo_postal")]):
+                    exito_d, msg_d, direccion_id = self.db.agregar_direccion(empleado_id, direccion)
+                    if not exito_d:
+                        self.db.rollback()
+                        return False, msg_d, None
+                    if direccion_id:
+                        direccion['id'] = direccion_id
 
-            for telefono in datos["telefonos"]:
-                if telefono["telefono"]:
-                    self.db.agregar_telefono(empleado_id, telefono["telefono"], telefono["tipo"])
+            # Agregar teléfonos
+            for telefono in datos.get("telefonos", []):
+                if telefono.get("telefono"):
+                    exito_t, msg_t, telefono_id = self.db.agregar_telefono(empleado_id, telefono["telefono"],
+                                                                           telefono["tipo"])
+                    if not exito_t:
+                        self.db.rollback()
+                        return False, msg_t, None
+                    if telefono_id:
+                        telefono['id'] = telefono_id
 
-            for cargo in datos["cargos"]:
-                if cargo["cargo"]:
-                    self.db.agregar_cargo(empleado_id, cargo["cargo"], cargo["salario"],
-                                          cargo["fecha_inicio"], cargo.get("fecha_fin"))
+            # Agregar cargos
+            for cargo in datos.get("cargos", []):
+                if cargo.get("cargo"):
+                    exito_c, msg_c, cargo_id = self.db.agregar_cargo(empleado_id, cargo["cargo"], cargo["salario"],
+                                                                     cargo["fecha_inicio"], cargo.get("fecha_fin"))
+                    if not exito_c:
+                        self.db.rollback()
+                        return False, msg_c, None
+                    if cargo_id:
+                        cargo['id'] = cargo_id
 
-            for jornada in datos["jornadas"]:
-                if jornada["fecha"] or jornada["hora_de_entrada"] or jornada["hora_de_salida"]:
-                    self.db.agregar_jornada(empleado_id, jornada["fecha"], jornada["hora_de_entrada"],
-                                            jornada["hora_de_salida"])
+            # Agregar jornadas
+            for jornada in datos.get("jornadas", []):
+                if any([jornada.get("fecha"), jornada.get("hora_de_entrada"), jornada.get("hora_de_salida")]):
+                    exito_j, msg_j, jornada_id = self.db.agregar_jornada(empleado_id, jornada["fecha"],
+                                                                         jornada["hora_de_entrada"],
+                                                                         jornada["hora_de_salida"])
+                    if not exito_j:
+                        self.db.rollback()
+                        return False, msg_j, None
+                    if jornada_id:
+                        jornada['id'] = jornada_id
 
-            return True, "Empleado y datos asociados agregados con éxito."
+            # Confirmar transacción
+            self.db.commit()
+            return True, "Empleado y datos asociados agregados con éxito.", empleado_id
         except Exception as e:
-            return False, str(e)
+            self.db.rollback()
+            return False, f"Error al agregar empleado: {str(e)}", None
+        finally:
+            self.db.close_connection()
 
     def modificar_empleado(self, dni, datos):
-        """Modifica los datos de un empleado existente.
-
-        Args:
-            dni (str): DNI del empleado a modificar.
-            datos (dict): Nuevos datos del empleado.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
+        """Modifica los datos de un empleado existente."""
         try:
+            self.db.create_connection()
             empleado = Empleado(
                 dni, datos["cuit"], datos["nombre"], datos["segundo_nombre"],
                 datos["apellido"], datos["segundo_apellido"], datos["fecha_nacimiento"],
@@ -69,188 +90,197 @@ class Controlador:
             )
             empleado.validar()
             exito, msg = self.db.modificar_empleado(dni, empleado.to_dict())
+            self.db.commit()
             return exito, msg
         except Exception as e:
+            self.db.rollback()
             return False, str(e)
+        finally:
+            self.db.close_connection()
 
     def eliminar_empleado(self, dni):
-        """Elimina un empleado.
-
-        Args:
-            dni (str): DNI del empleado a eliminar.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.eliminar_empleado(dni)
+        """Elimina un empleado."""
+        try:
+            self.db.create_connection()
+            exito, msg = self.db.eliminar_empleado(dni)
+            self.db.commit()
+            return exito, msg
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)
+        finally:
+            self.db.close_connection()
 
     def agregar_direccion(self, empleado_id, direccion):
-        """Agrega una dirección a un empleado.
-
-        Args:
-            empleado_id (int): ID del empleado.
-            direccion (dict): Datos de la dirección.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.agregar_direccion(empleado_id, direccion)
+        """Agrega una dirección a un empleado."""
+        try:
+            self.db.create_connection()
+            exito, msg, direccion_id = self.db.agregar_direccion(empleado_id, direccion)
+            self.db.commit()
+            return exito, msg, direccion_id
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e), None
+        finally:
+            self.db.close_connection()
 
     def modificar_direccion(self, direccion_id, direccion):
-        """Modifica una dirección existente.
-
-        Args:
-            direccion_id (int): ID de la dirección.
-            direccion (dict): Nuevos datos de la dirección.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.modificar_direccion(direccion_id, direccion)
+        """Modifica una dirección existente."""
+        try:
+            self.db.create_connection()
+            exito, msg = self.db.modificar_direccion(direccion_id, direccion)
+            self.db.commit()
+            return exito, msg
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)
+        finally:
+            self.db.close_connection()
 
     def eliminar_direccion(self, direccion_id):
-        """Elimina una dirección.
-
-        Args:
-            direccion_id (int): ID de la dirección.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.eliminar_direccion(direccion_id)
+        """Elimina una dirección."""
+        try:
+            self.db.create_connection()
+            exito, msg = self.db.eliminar_direccion(direccion_id)
+            self.db.commit()
+            return exito, msg
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)
+        finally:
+            self.db.close_connection()
 
     def agregar_telefono(self, empleado_id, telefono, tipo):
-        """Agrega un teléfono a un empleado.
-
-        Args:
-            empleado_id (int): ID del empleado.
-            telefono (str): Número de teléfono.
-            tipo (str): Tipo de teléfono.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.agregar_telefono(empleado_id, telefono, tipo)
+        """Agrega un teléfono a un empleado."""
+        try:
+            self.db.create_connection()
+            exito, msg, telefono_id = self.db.agregar_telefono(empleado_id, telefono, tipo)
+            self.db.commit()
+            return exito, msg, telefono_id
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e), None
+        finally:
+            self.db.close_connection()
 
     def modificar_telefono(self, telefono_id, telefono, tipo):
-        """Modifica un teléfono existente.
-
-        Args:
-            telefono_id (int): ID del teléfono.
-            telefono (str): Nuevo número de teléfono.
-            tipo (str): Nuevo tipo de teléfono.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.modificar_telefono(telefono_id, telefono, tipo)
+        """Modifica un teléfono existente."""
+        try:
+            self.db.create_connection()
+            exito, msg = self.db.modificar_telefono(telefono_id, telefono, tipo)
+            self.db.commit()
+            return exito, msg
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)
+        finally:
+            self.db.close_connection()
 
     def eliminar_telefono(self, telefono_id):
-        """Elimina un teléfono.
-
-        Args:
-            telefono_id (int): ID del teléfono.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.eliminar_telefono(telefono_id)
+        """Elimina un teléfono."""
+        try:
+            self.db.create_connection()
+            exito, msg = self.db.eliminar_telefono(telefono_id)
+            self.db.commit()
+            return exito, msg
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)
+        finally:
+            self.db.close_connection()
 
     def agregar_cargo(self, empleado_id, cargo, salario, fecha_inicio, fecha_fin=None):
-        """Agrega un cargo a un empleado.
-
-        Args:
-            empleado_id (int): ID del empleado.
-            cargo (str): Nombre del cargo.
-            salario (str): Salario.
-            fecha_inicio (str): Fecha de inicio.
-            fecha_fin (str, optional): Fecha de fin.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.agregar_cargo(empleado_id, cargo, salario, fecha_inicio, fecha_fin)
+        """Agrega un cargo a un empleado."""
+        try:
+            self.db.create_connection()
+            exito, msg, cargo_id = self.db.agregar_cargo(empleado_id, cargo, salario, fecha_inicio, fecha_fin)
+            self.db.commit()
+            return exito, msg, cargo_id
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e), None
+        finally:
+            self.db.close_connection()
 
     def modificar_cargo(self, cargo_id, cargo, salario, fecha_inicio, fecha_fin):
-        """Modifica un cargo existente.
-
-        Args:
-            cargo_id (int): ID del cargo.
-            cargo (str): Nuevo nombre del cargo.
-            salario (str): Nuevo salario.
-            fecha_inicio (str): Nueva fecha de inicio.
-            fecha_fin (str): Nueva fecha de fin.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.modificar_cargo(cargo_id, cargo, salario, fecha_inicio, fecha_fin)
+        """Modifica un cargo existente."""
+        try:
+            self.db.create_connection()
+            exito, msg = self.db.modificar_cargo(cargo_id, cargo, salario, fecha_inicio, fecha_fin)
+            self.db.commit()
+            return exito, msg
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)
+        finally:
+            self.db.close_connection()
 
     def eliminar_cargo(self, cargo_id):
-        """Elimina un cargo.
-
-        Args:
-            cargo_id (int): ID del cargo.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.eliminar_cargo(cargo_id)
+        """Elimina un cargo."""
+        try:
+            self.db.create_connection()
+            exito, msg = self.db.eliminar_cargo(cargo_id)
+            self.db.commit()
+            return exito, msg
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)
+        finally:
+            self.db.close_connection()
 
     def agregar_jornada(self, empleado_id, fecha, hora_de_entrada, hora_de_salida):
-        """Agrega una jornada laboral a un empleado.
-
-        Args:
-            empleado_id (int): ID del empleado.
-            fecha (str): Fecha de la jornada.
-            hora_de_entrada (str): Hora de entrada.
-            hora_de_salida (str): Hora de salida.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.agregar_jornada(empleado_id, fecha, hora_de_entrada, hora_de_salida)
+        """Agrega una jornada laboral a un empleado."""
+        try:
+            self.db.create_connection()
+            exito, msg, jornada_id = self.db.agregar_jornada(empleado_id, fecha, hora_de_entrada, hora_de_salida)
+            self.db.commit()
+            return exito, msg, jornada_id
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e), None
+        finally:
+            self.db.close_connection()
 
     def modificar_jornada(self, jornada_id, fecha, hora_de_entrada, hora_de_salida):
-        """Modifica una jornada laboral existente.
-
-        Args:
-            jornada_id (int): ID de la jornada.
-            fecha (str): Nueva fecha.
-            hora_de_entrada (str): Nueva hora de entrada.
-            hora_de_salida (str): Nueva hora de salida.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.modificar_jornada(jornada_id, fecha, hora_de_entrada, hora_de_salida)
+        """Modifica una jornada laboral existente."""
+        try:
+            self.db.create_connection()
+            exito, msg = self.db.modificar_jornada(jornada_id, fecha, hora_de_entrada, hora_de_salida)
+            self.db.commit()
+            return exito, msg
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)
+        finally:
+            self.db.close_connection()
 
     def eliminar_jornada(self, jornada_id):
-        """Elimina una jornada laboral.
-
-        Args:
-            jornada_id (int): ID de la jornada.
-
-        Returns:
-            tuple: (bool, str) Éxito y mensaje.
-        """
-        return self.db.eliminar_jornada(jornada_id)
+        """Elimina una jornada laboral."""
+        try:
+            self.db.create_connection()
+            exito, msg = self.db.eliminar_jornada(jornada_id)
+            self.db.commit()
+            return exito, msg
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)
+        finally:
+            self.db.close_connection()
 
     def obtener_empleado(self, dni):
-        """Obtiene un empleado por su DNI.
-
-        Args:
-            dni (str): DNI del empleado.
-
-        Returns:
-            dict: Datos del empleado.
-        """
-        return self.db.obtener_empleado(dni)
+        """Obtiene un empleado por su DNI."""
+        try:
+            self.db.create_connection()
+            empleado = self.db.obtener_empleado(dni)
+            return empleado
+        finally:
+            self.db.close_connection()
 
     def listar_empleados(self):
-        """Lista todos los empleados.
-
-        Returns:
-            list: Lista de empleados.
-        """
-        return self.db.listar_empleados()
+        """Lista todos los empleados."""
+        try:
+            self.db.create_connection()
+            empleados = self.db.listar_empleados()
+            return empleados
+        finally:
+            self.db.close_connection()
